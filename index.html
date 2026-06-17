@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI视频生成 - 扣子Coze</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #0a0a0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    /* 顶部导航 */
+    .header {
+      height: 60px;
+      background: rgba(20, 20, 28, 0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #7c3aed, #6366f1);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .header-right {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    /* 主容器 */
+    .main {
+      display: flex;
+      height: calc(100vh - 60px);
+      margin-top: 60px;
+    }
+
+    /* 左侧边栏 */
+    .sidebar {
+      width: 240px;
+      background: rgba(15, 15, 22, 0.6);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .nav-title {
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      padding-left: 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,0.05);
+      color: #e0e0e0;
+    }
+
+    .nav-item.active {
+      background: rgba(124, 58, 237, 0.15);
+      color: #a78bfa;
+    }
+
+    .nav-item .icon {
+      font-size: 16px;
+    }
+
+    /* 中间内容区 */
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* 输入区域 */
+    .input-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .input-label {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .input-label span {
+      color: #a78bfa;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 14px;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      color: #e0e0e0;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    textarea:focus {
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    }
+
+    textarea::placeholder {
+      color: #475569;
+    }
+
+    /* 高级设置 */
+    .advanced-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #64748b;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .advanced-toggle:hover {
+      color: #94a3b8;
+    }
+
+    /* 生成按钮 */
+    .generate-btn {
+      width: 100%;
+      padding: 14px 24px;
+      background: linear-gradient(135deg, #7c3aed, #6366f1);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .generate-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 25px rgba(124, 58, 237, 0.35);
+    }
+
+    .generate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 右侧结果区 */
+    .result-panel {
+      width: 420px;
+      background: rgba(15, 15, 22, 0.6);
+      border-left: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .result-header {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .result-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .download-btn {
+      padding: 6px 14px;
+      background: rgba(52, 211, 153, 0.1);
+      border: 1px solid rgba(52, 211, 153, 0.25);
+      border-radius: 8px;
+      color: #34d399;
+      font-size: 12px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .download-btn:hover {
+      background: rgba(52, 211, 153, 0.2);
+    }
+
+    .download-btn.show {
+      display: flex;
+    }
+
+    /* 视频展示 */
+    .video-container {
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .video-wrapper {
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 16/9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .video-wrapper video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .video-placeholder {
+      text-align: center;
+      color: #475569;
+    }
+
+    .video-placeholder .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    .video-placeholder p {
+      font-size: 14px;
+    }
+
+    /* 进度条 */
+    .progress-area {
+      display: none;
+      padding: 20px;
+    }
+
+    .progress-area.active {
+      display: block;
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #a78bfa);
+      border-radius: 2px;
+      animation: progress 2s ease-in-out infinite;
+    }
+
+    @keyframes progress {
+      0% { width: 0%; }
+      50% { width: 70%; }
+      100% { width: 100%; }
+    }
+
+    .progress-text {
+      font-size: 13px;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    /* 历史记录 */
+    .history-section {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .history-title {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-clear {
+      font-size: 12px;
+      color: #64748b;
+      cursor: pointer;
+    }
+
+    .history-clear:hover {
+      color: #94a3b8;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .history-item:hover {
+      background: rgba(255,255,255,0.06);
+    }
+
+    .history-thumb {
+      width: 48px;
+      height: 48px;
+      background: rgba(124, 58, 237, 0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .history-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .history-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .history-prompt {
+      font-size: 13px;
+      color: #e0e0e0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-time {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* 提示词示例 */
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .example-tag {
+      font-size: 12px;
+      padding: 6px 12px;
+      background: rgba(167, 139, 250, 0.1);
+      border: 1px solid rgba(167, 139, 250, 0.2);
+      border-radius: 20px;
+      color: #c4b5fd;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .example-tag:hover {
+      background: rgba(167, 139, 250, 0.2);
+      color: #ddd6fe;
+    }
+
+    /* 错误提示 */
+    .error-box {
+      padding: 12px 16px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 10px;
+      color: #fca5a5;
+      font-size: 13px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    .error-box.show {
+      display: block;
+    }
+
+    /* 响应式 */
+    @media (max-width: 1024px) {
+      .sidebar { display: none; }
+      .result-panel {
+        position: fixed;
+        right: 0;
+        top: 60px;
+        bottom: 0;
+        transform: translateX(100%);
+        transition: transform 0.3s;
+      }
+      .result-panel.open {
+        transform: translateX(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">✨</div>
+      <span>AI视频生成</span>
+    </div>
+    <div class="header-right">基于扣子 Coze 工作流</div>
+  </header>
+
+  <div class="main">
+    <!-- 左侧边栏 -->
+    <aside class="sidebar">
+      <div class="nav-title">创作工具</div>
+      <div class="nav-item active" onclick="switchTab('video')">
+        <span class="icon">🎬</span>
+        <span>文生视频</span>
+      </div>
+      <div class="nav-item" onclick="alert('功能开发中')">
+        <span class="icon">🖼️</span>
+        <span>图生视频</span>
+      </div>
+      <div class="nav-item" onclick="alert('功能开发中')">
+        <span class="icon">✏️</span>
+        <span>视频编辑</span>
+      </div>
+    </aside>
+
+    <!-- 中间内容区 -->
+    <main class="content">
+      <h1 class="page-title">🎬 文生视频</h1>
+
+      <div class="input-card">
+        <div class="input-label">
+          <span>提示词</span>
+          <span id="charCount">0/2000</span>
+        </div>
+        <textarea 
+          id="promptInput" 
+          placeholder="描述你想要生成的视频内容，例如：一只可爱的金毛犬在草地上奔跑，阳光明媚，4K高清画质..."
+          maxlength="2000"
+        ></textarea>
+        
+        <div class="examples">
+          <span class="example-tag" data-prompt="一只可爱的柴犬在海边奔跑，夕阳余晖，电影级画质">🌊 海边柴犬</span>
+          <span class="example-tag" data-prompt="未来赛博朋克城市夜景，霓虹灯闪烁，飞行汽车穿梭">🌃 赛博朋克</span>
+          <span class="example-tag" data-prompt="唯美的樱花树下，少女撑着油纸伞，花瓣飘落">🌸 樱花少女</span>
+          <span class="example-tag" data-prompt="宇航员在月球表面行走，地球在背景中升起，科幻风格">🚀 月球漫步</span>
+        </div>
+
+        <div class="advanced-toggle" onclick="toggleAdvanced()">
+          <span>⚙️</span>
+          <span>高级设置</span>
+        </div>
+      </div>
+
+      <button class="generate-btn" id="generateBtn" onclick="generateVideo()">
+        <span>✨</span>
+        <span>开始生成</span>
+      </button>
+
+      <div class="error-box" id="errorBox"></div>
+    </main>
+
+    <!-- 右侧结果区 -->
+    <aside class="result-panel" id="resultPanel">
+      <div class="result-header">
+        <span class="result-title">生成结果</span>
+        <button class="download-btn" id="downloadBtn" onclick="downloadVideo()">
+          ⬇ 下载
+        </button>
+      </div>
+
+      <div class="video-container">
+        <div class="video-wrapper" id="videoWrapper">
+          <div class="video-placeholder">
+            <div class="icon">🎬</div>
+            <p>输入提示词并点击生成</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-area" id="progressArea">
+        <div class="progress-bar">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="progress-text">AI 正在生成视频，请耐心等待...</div>
+      </div>
+
+      <div class="history-section">
+        <div class="history-title">
+          <span>历史记录</span>
+          <span class="history-clear" onclick="clearHistory()">清空</span>
+        </div>
+        <div id="historyList"></div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // ==================== 扣子配置 ====================
+    const COZE = {
+      url: 'https://api.coze.cn/v1/workflow/run',
+      token: 'cztei_hbjncFq4iEMitLlOJCeTX1th0e8x2c4O5ciLUjLkcBsKzZ3IGvNtuSHnUyUMKHWC0',
+      workflow_id: '7652216687249817635',
+      paramName: 'input'
+    };
+
+    // ==================== 历史记录 ====================
+    let history = JSON.parse(localStorage.getItem('videoHistory') || '[]');
+    let currentVideoUrl = null;
+
+    function saveHistory(prompt, videoUrl) {
+      const item = {
+        prompt,
+        videoUrl,
+        time: new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      };
+      history.unshift(item);
+      if (history.length > 10) history = history.slice(0, 10);
+      localStorage.setItem('videoHistory', JSON.stringify(history));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      if (history.length === 0) {
+        list.innerHTML = '<div style="color:#475569;font-size:13px;text-align:center;padding:20px;">暂无历史记录</div>';
+        return;
+      }
+      list.innerHTML = history.map((item, i) => `
+        <div class="history-item" onclick="loadHistory(${i})">
+          <div class="history-thumb">🎬</div>
+          <div class="history-info">
+            <div class="history-prompt">${escapeHtml(item.prompt)}</div>
+            <div class="history-time">${item.time}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function loadHistory(index) {
+      const item = history[index];
+      if (item && item.videoUrl) {
+        showVideo(item.videoUrl, item.prompt);
+        document.getElementById('promptInput').value = item.prompt;
+        updateCharCount();
+      }
+    }
+
+    function clearHistory() {
+      if (confirm('确定清空历史记录吗？')) {
+        history = [];
+        localStorage.removeItem('videoHistory');
+        renderHistory();
+      }
+    }
+
+    // ==================== 示例标签 ====================
+    document.querySelectorAll('.example-tag').forEach(tag => {
+      tag.addEventListener('click', function() {
+        document.getElementById('promptInput').value = this.dataset.prompt;
+        updateCharCount();
+      });
+    });
+
+    // ==================== 字数统计 ====================
+    const promptInput = document.getElementById('promptInput');
+    promptInput.addEventListener('input', updateCharCount);
+
+    function updateCharCount() {
+      document.getElementById('charCount').textContent = promptInput.value.length + '/2000';
+    }
+
+    function toggleAdvanced() {
+      alert('高级设置功能开发中');
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      event.target.closest('.nav-item').classList.add('active');
+    }
+
+    // ==================== 生成视频 ====================
+    async function generateVideo() {
+      const prompt = promptInput.value.trim();
+      if (!prompt) {
+        showError('请输入视频描述');
+        promptInput.focus();
+        return;
+      }
+
+      hideError();
+      const btn = document.getElementById('generateBtn');
+      const progressArea = document.getElementById('progressArea');
+      const downloadBtn = document.getElementById('downloadBtn');
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span><span>生成中...</span>';
+      progressArea.classList.add('active');
+      downloadBtn.classList.remove('show');
+
+      try {
+        const body = {
+          workflow_id: COZE.workflow_id,
+          is_async: false,
+          parameters: {}
+        };
+        body.parameters[COZE.paramName] = prompt;
+
+        const resp = await fetch(COZE.url, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + COZE.token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        const data = await resp.json();
+        console.log('Coze 返回:', data);
+
+        if (data.code === 0) {
+          let videoUrl = null;
+          let raw = data.data;
+
+          if (typeof raw === 'string') {
+            try {
+              const inner = JSON.parse(raw);
+              raw = inner;
+              videoUrl = inner.data || inner.video_url || inner.url;
+            } catch (_) {
+              videoUrl = raw;
+            }
+          } else if (raw && typeof raw === 'object') {
+            videoUrl = raw.data || raw.video_url || raw.url;
+          }
+
+          if (videoUrl) {
+            showVideo(videoUrl, prompt);
+            saveHistory(prompt, videoUrl);
+          } else {
+            showError('未能获取视频链接，请检查工作流输出格式');
+          }
+        } else if (data.code === 4028) {
+          showError('扣子额度已用完，请等待配额刷新或升级付费版');
+        } else {
+          showError(data.msg || '生成失败: ' + data.code);
+        }
+      } catch (e) {
+        showError('网络请求失败: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>✨</span><span>开始生成</span>';
+        progressArea.classList.remove('active');
+      }
+    }
+
+    // ==================== 显示视频 ====================
+    function showVideo(url, prompt) {
+      const wrapper = document.getElementById('videoWrapper');
+      const downloadBtn = document.getElementById('downloadBtn');
+      currentVideoUrl = url;
+
+      wrapper.innerHTML = `<video controls autoplay loop src="${escapeHtml(url)}"></video>`;
+      downloadBtn.classList.add('show');
+    }
+
+    function downloadVideo() {
+      if (currentVideoUrl) {
+        const a = document.createElement('a');
+        a.href = currentVideoUrl;
+        a.download = 'video_' + Date.now() + '.mp4';
+        a.target = '_blank';
+        a.click();
+      }
+    }
+
+    // ==================== 错误处理 ====================
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      box.textContent = '⚠️ ' + msg;
+      box.classList.add('show');
+    }
+
+    function hideError() {
+      document.getElementById('errorBox').classList.remove('show');
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ==================== 初始化 ====================
+    renderHistory();
+    updateCharCount();
+
+    // 快捷键 Ctrl+Enter
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        generateVideo();
+      }
+    });
+  </script>
+</body>
+</html>
